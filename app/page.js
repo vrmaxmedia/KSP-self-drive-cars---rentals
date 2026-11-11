@@ -6,10 +6,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 //  CLIENT CONFIGURATION (KSP Self Drive Cars and Rentals)
 // =====================================================================
 
-// Client's exact Google Place ID (Please replace this if you have the exact ChIJ ID, otherwise leave blank or generate via search URL)
-// For now, this search query URL works perfectly for Google Reviews.
 const GOOGLE_REVIEW_URL = "https://search.google.com/local/writereview?placeid=ChIJY2tW_5HwXDsRTR31L3iOtwM"; 
-// Note: If you have the exact Place ID, replace the URL above. For now, it will open the review box for KSP Wagholi.
 
 const CLIENT_CONFIG = {
   businessName: "KSP Self Drive Cars",
@@ -23,10 +20,10 @@ const CLIENT_CONFIG = {
   cleanPhone: "917470431373",
   logoUrl: "/logo.png",
 
-  googleReviewUrl: "https://search.google.com/local/writereview?placeid=YOUR_PLACE_ID_HERE", // Replace YOUR_PLACE_ID_HERE with real ID, or use the link above
+  googleReviewUrl: GOOGLE_REVIEW_URL,
   mapsDirectionUrl: "https://www.google.com/maps/dir/?api=1&destination=KSP+self+drive+cars+and+rentals+Wagholi+Pune",
 
-  instagramUrl: "", // Add if client has one
+  instagramUrl: "", 
   facebookUrl: "",
   youtubeUrl: "",
   websiteUrl: "https://www.kspselfdrivecars.in/",
@@ -35,7 +32,6 @@ const CLIENT_CONFIG = {
   agencyWhatsapp: "918700660097",
   agencyPhoneDisplay: "+91 87006 60097",
 
-  // Must match exactly with the route.js CHIPS keys
   chips: [
     'Clean & Maintained',
     'Doorstep Delivery',
@@ -112,8 +108,8 @@ export default function RentalReviewPage() {
   const [mounted, setMounted] = useState(false);
   const [selectedChips, setSelectedChips] = useState([]);
   
-  // Default Language Set to Marathi as per Pune location and your strict rules
-  const [language, setLanguage] = useState("MARATHI"); 
+  // DEFAULT SET BACK TO ENGLISH
+  const [language, setLanguage] = useState("ENGLISH"); 
   
   const [reviewDraft, setReviewDraft] = useState("");
   const [loading, setLoading] = useState(false);
@@ -194,7 +190,7 @@ export default function RentalReviewPage() {
       updated = selectedChips.filter((c) => c !== chip);
     } else {
       if (selectedChips.length >= 3) {
-        alert("तुम्ही जास्तीत जास्त ३ पर्याय निवडू शकता."); // Marathi alert
+        alert("You can select a maximum of 3 points.");
         return;
       }
       updated = [...selectedChips, chip];
@@ -219,8 +215,7 @@ export default function RentalReviewPage() {
     }
     setCopied(true);
     setTimeout(() => {
-      // Use the fallback URL if Place ID is not updated in code
-      window.location.href = CLIENT_CONFIG.googleReviewUrl.includes("YOUR_PLACE_ID") ? GOOGLE_REVIEW_URL : CLIENT_CONFIG.googleReviewUrl;
+      window.location.href = CLIENT_CONFIG.googleReviewUrl;
     }, 550);
   }
 
@@ -249,7 +244,6 @@ END:VCARD`;
 
   return (
     <main className="rental-glass-viewport">
-      {/* BULLETPROOF FIXED BACKGROUND */}
       <div className="fixed-bg"></div>
 
       <div className="main-content-flow">
@@ -267,9 +261,10 @@ END:VCARD`;
 
         <p className="brand-serif-subtitle">{CLIENT_CONFIG.subHeading}</p>
 
+        {/* Clean Divider without Emojis */}
         <div className="rental-divider">
           <span className="divider-line"></span>
-          <span className="divider-icon">🚘</span>
+          <span className="divider-icon">✦</span>
           <span className="divider-line"></span>
         </div>
 
@@ -277,7 +272,7 @@ END:VCARD`;
           <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
         </div>
 
-        <p className="experience-tracker-title">तुमचा अनुभव शेअर करा</p>
+        <p className="experience-tracker-title">SHARE YOUR EXPERIENCE</p>
 
         {/* Filter Chips */}
         <div className="floating-pills-cloud">
@@ -297,9 +292,9 @@ END:VCARD`;
         </div>
         <p className="chip-hint">Select up to 3 points</p>
 
-        {/* Language Selector */}
+        {/* Language Selector (English & Hindi only) */}
         <div className="capsule-lang-dock">
-          {["MARATHI", "ENGLISH", "HINDI"].map((lang) => {
+          {["ENGLISH", "HINDI"].map((lang) => {
             const active = language === lang;
             return (
               <button
@@ -349,7 +344,8 @@ END:VCARD`;
             )}
           </div>
 
-          <div className="card-ornament-center"><span>🚘</span></div>
+          {/* Clean Ornament without Emojis */}
+          <div className="card-ornament-center"><span>✦</span></div>
 
           <button
             type="button"
@@ -412,7 +408,7 @@ END:VCARD`;
           </div>
         </div>
 
-        {/* Map Card (Glassmorphism) */}
+        {/* Map Card */}
         <div className="embedded-map-card glass-panel">
           <a href={CLIENT_CONFIG.mapsDirectionUrl} target="_blank" rel="noreferrer" className="map-card-header-link">
             <div className="address-highlight-box">
@@ -469,7 +465,7 @@ END:VCARD`;
           position: relative; 
           --tx-main: #f8fafc;     
           --tx-sub: #cbd5e1;      
-          --brand-primary: #f59e0b; /* Amber/Yellow for Cars */
+          --brand-primary: #f59e0b; 
           --brand-dark: #1e293b; 
           --glass-bg: rgba(15, 23, 42, 0.75); 
           --glass-border: rgba(255, 255, 255, 0.15);
@@ -486,7 +482,6 @@ END:VCARD`;
           align-items: center;
         }
 
-        /* FIXED BACKGROUND */
         .fixed-bg {
           position: fixed;
           top: 0;
@@ -583,8 +578,9 @@ END:VCARD`;
         }
 
         .divider-icon {
-          font-size: 14px;
-          opacity: 0.9;
+          font-size: 11px;
+          color: var(--brand-primary);
+          opacity: 0.8;
         }
 
         .stars-cluster {
@@ -659,7 +655,7 @@ END:VCARD`;
         }
 
         .capsule-lang-btn {
-          padding: 5px 14px;
+          padding: 5px 18px;
           border-radius: 999px;
           border: none;
           background: transparent;
@@ -776,9 +772,10 @@ END:VCARD`;
 
         .card-ornament-center {
           text-align: center;
-          font-size: 14px;
+          color: var(--brand-primary);
+          font-size: 11px;
           margin: 6px 0 10px;
-          opacity: 0.8;
+          opacity: 0.6;
         }
 
         .full-luxury-copy-btn {
