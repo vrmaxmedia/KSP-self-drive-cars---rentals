@@ -4,8 +4,8 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
 
-// FIXED: Exact API name for the model with 10,000 daily limits
-const MODEL = 'gemini-1.5-flash'; 
+// LOCKED TO FLASH-LITE MODEL FOR MAXIMUM 150K LIMIT
+const MODEL = 'gemini-3.5-flash-lite'; 
 const PARALLEL_CALLS = 2;
 const MAX_ROUNDS = 2;
 const CALL_TIMEOUT_MS = 12000;
