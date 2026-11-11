@@ -7,12 +7,14 @@ export const maxDuration = 30;
 /* =====================================================================
    SETTINGS (speed & model)
    ===================================================================== */
-const MODEL = process.env.GEMINI_MODEL || 'gemini-3.6-flash'; // Stable working model
-const PARALLEL_CALLS = 2;      
-const MAX_ROUNDS = 2;          
-const CALL_TIMEOUT_MS = 12000; 
-const MAX_OUTPUT_TOKENS = 300;
-const HISTORY_SIZE = 60;       
+const MODEL = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
+const PARALLEL_CALLS = 2;
+const MAX_ROUNDS = 2;
+const CALL_TIMEOUT_MS = 12000;
+const MAX_OUTPUT_TOKENS = 800; // FIX: 300 kam tha, Gemini 3 ki thinking tokens isi me ginti hai to review cut ho jata tha
+const HISTORY_SIZE = 60;
+const OPENING_CHECK_SIZE = 12; // FIX: opening sirf pichhle 12 se match karo (pehle 60 se karta tha, car rental me sab shuru ek jaise hote hain)
+const SIMILARITY_LIMIT = 0.6;  // FIX: pehle 0.45 tha, chhote domain me bahut reviews reject ho rahe the
 
 /* =====================================================================
    BUSINESS PACK (KSP Self Drive Cars)
@@ -39,7 +41,7 @@ const TOPICS = {
   service: {
     id: 'service',
     text: 'the service and staff: polite, cooperative, quick verification, and smooth doorstep delivery',
-    must: /service|staff|polite|cooperative|delivery|doorstep|help|team|behavior/i,
+    must: /service|staff|polite|cooperative|delivery|doorstep|help|team|behavior|behaviour/i,
   },
   pricing: {
     id: 'pricing',
@@ -49,12 +51,13 @@ const TOPICS = {
   trip: {
     id: 'trip',
     text: 'the road trip: comfortable outstation trip, smooth highway drive, perfect for family journey',
-    must: /trip|journey|drive|family|outstation|highway|travel|mahabaleshwar|mumbai/i,
+    must: /trip|journey|drive|family|outstation|highway|travel/i,
   },
   booking: {
     id: 'booking',
-    text: 'the booking process: very easy online booking, quick response, and hassle-free pickup and drop',
-    must: /booking|process|easy|quick|pickup|drop|hassle|fast/i,
+    // FIX: "hassle-free" hata diya, kyunki wo AI_PHRASES me banned hai aur Gemini isi shabd ko copy karke review reject karwa deta tha
+    text: 'the booking process: very easy online booking, quick response, and smooth pickup and drop',
+    must: /booking|book|process|easy|quick|pickup|drop|fast/i,
   },
 };
 
@@ -62,17 +65,17 @@ const ALL_TOPICS = ['condition', 'service', 'pricing', 'trip', 'booking'];
 
 const CHIPS = {
   'Clean & Maintained': { id: 'chip_clean', text: 'the car was very clean and well-maintained', must: /clean|condition|maintain|smooth|car|saaf/i },
-  'Doorstep Delivery': { id: 'chip_delivery', text: 'they provided quick doorstep delivery at the right time', must: /delivery|doorstep|time|home/i },
-  'Smooth Booking': { id: 'chip_booking', text: 'the booking process was smooth and easy', must: /booking|process|easy|quick|fast/i },
-  'Affordable Pricing': { id: 'chip_price', text: 'the rental rates were affordable with no hidden fees', must: /price|rate|affordable|budget|charge|money/i },
-  'Instant Refund': { id: 'chip_refund', text: 'got the security deposit refunded instantly without any delay', must: /refund|deposit|instant|immediate|money/i },
-  'Polite Staff': { id: 'chip_staff', text: 'the staff was very polite and supportive throughout', must: /staff|polite|cooperative|help|team|behavior/i },
-  'Outstation Trips': { id: 'chip_trip', text: 'took the car for an outstation trip and it performed amazingly', must: /trip|journey|drive|outstation|highway|travel/i },
+  'Doorstep Delivery': { id: 'chip_delivery', text: 'they provided quick doorstep delivery at the right time', must: /delivery|deliver|doorstep|time|home/i },
+  'Smooth Booking': { id: 'chip_booking', text: 'the booking process was smooth and easy', must: /booking|book|process|easy|quick|fast/i },
+  'Affordable Pricing': { id: 'chip_price', text: 'the rental rates were affordable with no hidden fees', must: /price|pricing|rate|affordable|budget|charge|money|paise|sasta/i },
+  'Instant Refund': { id: 'chip_refund', text: 'got the security deposit refunded instantly without any delay', must: /refund|deposit|instant|immediate|turant|wapas|money/i },
+  'Polite Staff': { id: 'chip_staff', text: 'the staff was very polite and supportive throughout', must: /staff|polite|cooperative|help|team|behavior|behaviour/i },
+  'Outstation Trips': { id: 'chip_trip', text: 'took the car for an outstation trip and it performed really well', must: /trip|journey|drive|outstation|highway|travel/i },
   'No Hidden Charges': { id: 'chip_hidden', text: 'transparent policies with absolutely no hidden charges', must: /transparent|hidden|charge|honest|clear/i },
 };
 
 const PERSONAS = [
-  { id: 'frequent', text: 'a frequent traveler who rents cars often, compares KSP favorably to others' },
+  { id: 'frequent', text: 'a frequent traveler who rents cars often and found this agency better than others' },
   { id: 'family', text: 'a family person who rented an SUV for a family road trip outside Pune' },
   { id: 'professional', text: 'a young IT professional from Pune who rented a car for a weekend getaway' },
   { id: 'practical', text: 'a highly practical customer who was happy about transparent pricing and quick refund' },
@@ -95,7 +98,7 @@ const HINGLISH_LEVELS = [
 const OPENERS = [
   'start directly with the recent trip you took with their car',
   'start directly by mentioning which car you rented',
-  'start directly with the final conclusion (great service, best in Pune)',
+  'start directly with the final conclusion in your own words',
   'start in the middle of a thought casually about the booking process',
   'start with how many days you rented the car for',
 ];
@@ -119,7 +122,7 @@ const EXAMPLES = {
   ENGLISH: [
     'Rented a car for a weekend trip, vehicle was super clean and delivery was right on time',
     'Very smooth booking process, no hidden charges and security deposit was refunded immediately',
-    'Car condition was excellent, drove all the way without any trouble, highly reliable service',
+    'Car condition was excellent, drove all the way without any trouble, very reliable service',
   ],
   HINGLISH: [
     'gadi ekdum saaf thi aur time par deliver kar di, trip bahut achhi rahi',
@@ -166,7 +169,7 @@ function chooseLength(recent, minLines = 1) {
 }
 
 function choosePersona(recent) {
-  const last = recent.map((r) => r.voice).filter(Boolean).slice(-4);
+  const last = recent.map((r) => r.voice).filter(Boolean).slice(-3);
   const pool = PERSONAS.filter((v) => !last.includes(v.id));
   return pick(pool.length ? pool : PERSONAS);
 }
@@ -191,7 +194,6 @@ function chooseFrom(list, key, recent, n = 3) {
 const BANNED_OPENINGS = [
   'Great', 'Best', 'Amazing', 'Excellent', 'Highly recommend', 'Bhai', 'Superb', 'Awesome', 'The staff here',
   'Outstanding', 'Fantastic', 'Wonderful', 'Perfect', 'Must visit', 'Trust me',
-  'बहुत अच्छा', 'सबसे अच्छा', 'लाजवाब',
 ];
 
 const AI_PHRASES = /seamless|hassle[- ]free|top[- ]notch|look no further|go-to|game[- ]changer|one[- ]stop|unparalleled|exceptional|impeccable|commendable|must[- ]visit|highly recommended|hands down|truly|delighted|kudos|—|–/i;
@@ -209,24 +211,30 @@ const HINDI_WORDS = new Set([
   'rahe', 'rahi', 'laga', 'lagi', 'bilkul', 'ekdum', 'sab', 'kuch', 'koi', 'phir', 'fir', 'bhi', 'toh', 'lekin',
   'isliye', 'abhi', 'dekh', 'dekha', 'diya', 'dikhaya', 'samjhaya', 'sahi', 'dukaan', 'dukan', 'aap', 'aapne',
   'paise', 'kam', 'jyada', 'zyada', 'badhiya', 'mast', 'yaar', 'mein', 'yeh', 'ye', 'woh', 'wo', 'ne', 'hu', 'hun', 'tak', 'wahan', 'sabse',
+  'gadi', 'saaf', 'turant', 'wapas', 'sath', 'saath', 'zabardast', 'pasand', 'aayi', 'aaya', 'gaye', 'gaya', 'hua', 'hui', 'rahi', 'liye', 'time',
 ]);
 
-const HISTORY = []; 
-const HITS = new Map(); 
+/* ------------------ yaadasht (server par, best-effort) ------------------ */
+const HISTORY = []; // { open, ws }
+const HITS = new Map(); // ip -> [timestamps]
 
-const openingOf = (text) => text.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(Boolean).slice(0, 3).join(' ');
+// FIX: opening ab pehle 4 words se match hoti hai (pehle 3 the)
+const openingOf = (text) => text.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(Boolean).slice(0, 4).join(' ');
 const wordSet = (t) => new Set(t.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter((w) => w.length > 2));
 
 function tooSimilar(text, recentOpenings) {
   const open = openingOf(text);
   if (recentOpenings.includes(open)) return true;
-  const ws = wordSet(text);
-  for (const h of HISTORY) {
+  for (const h of HISTORY.slice(-OPENING_CHECK_SIZE)) {
     if (h.open === open) return true;
+  }
+  const ws = wordSet(text);
+  if (ws.size < 8) return false; // bahut chhote review me overlap check nahi
+  for (const h of HISTORY) {
     let inter = 0;
     for (const w of ws) if (h.ws.has(w)) inter++;
     const union = ws.size + h.ws.size - inter || 1;
-    if (inter / union > 0.45) return true;
+    if (inter / union > SIMILARITY_LIMIT) return true;
   }
   return false;
 }
@@ -245,9 +253,10 @@ function rateLimited(request) {
   if (HITS.size > 2000) {
     for (const [k, v] of HITS) if (!v.some((t) => now - t < 5 * 60 * 1000)) HITS.delete(k);
   }
-  return arr.length > 25; 
+  return arr.length > 25; // 5 minute me 25 se zyada nahi
 }
 
+/* ------------------ safai aur checks ------------------ */
 function cleanReview(text) {
   return text
     .replace(/^["'`\s]+|["'`\s]+$/g, '')
@@ -291,13 +300,15 @@ function startsBanned(text) {
   return BANNED_OPENINGS.some((b) => t.startsWith(b.toLowerCase()));
 }
 
+/* ------------------ Gemini ko jaane wali command ------------------ */
 function buildPrompt(body, recent) {
-  const language = body.language === 'HINDI' ? 'HINGLISH' : 'ENGLISH';
+  // FIX: frontend 'HINGLISH' bheje ya 'HINDI', dono Hinglish maane jayenge
+  const language = body.language === 'HINGLISH' || body.language === 'HINDI' ? 'HINGLISH' : 'ENGLISH';
   const businessName = String(body.businessName || 'KSP Self Drive Cars').slice(0, 120);
   const category = String(body.category || 'Car Rental Agency').slice(0, 200);
   const city = String(body.city || 'Wagholi, Pune').slice(0, 120);
 
-  let chips = chosenChips(body);
+  const chips = chosenChips(body);
   const minLines = chips.length >= 3 ? 4 : chips.length === 2 ? 3 : 1;
   const length = chooseLength(recent, minLines);
   const persona = choosePersona(recent);
@@ -305,7 +316,7 @@ function buildPrompt(body, recent) {
     ? { id: chips[0].id, text: chips[0].text, must: chips[0].must }
     : chooseTopic(recent);
   const extraChips = chips.slice(1);
-  const opener = chooseFrom(OPENERS, 'opener', recent, 3);
+  const opener = chooseFrom(OPENERS, 'opener', recent, 2);
   const ending = chooseFrom(ENDINGS, 'ending', recent, 2);
   const style = pick(WRITING_STYLES);
   const hinglishLevel = pick(HINGLISH_LEVELS);
@@ -321,17 +332,17 @@ function buildPrompt(body, recent) {
 
   const languageBlock =
     language === 'HINGLISH'
-      ? `LANGUAGE (MOST IMPORTANT): Write in HINGLISH = Hindi sentences typed in English/Roman letters, like a customer on WhatsApp. Level: ${hinglishLevel}. Grammar must be Hindi (hai, tha, kiya, mila, nahi, bahut, aur etc.). Never write a full Devanagari script.`
+      ? `LANGUAGE (MOST IMPORTANT): Write in HINGLISH = Hindi sentences typed in English/Roman letters, like a customer on WhatsApp. Level: ${hinglishLevel}. Grammar must be Hindi (hai, tha, kiya, mila, nahi, bahut, aur etc.). Product names and keywords can stay in English. Never use Devanagari.`
       : `LANGUAGE (MOST IMPORTANT): Write in simple natural English like an Indian customer. Do not use Hindi words.`;
 
   const examples = shuffle(EXAMPLES[language]).slice(0, 3).map((e) => `- ${e}`).join('\n');
 
   const prompt = `${languageBlock}
 
-You are ${persona.text}. ${buyerLine}You rented a car from this agency and are writing a Google Maps review.
+You are ${persona.text}. ${buyerLine}You rented a ${PRODUCT_WORD} from this agency and are writing a Google Maps review.
 Business: ${businessName} (${city}) | ${category}
 
-Tone samples from other customers (only for feel, never copy words):
+Tone samples from other customers (only for feel, never copy words or structure):
 ${examples}
 
 THIS REVIEW:
@@ -349,7 +360,8 @@ HARD RULES:
 - ONE single paragraph. No line breaks, bullets or title.
 - Do NOT use a full stop (.) anywhere. Use commas, "aur"/"and", or just flow.
 - Never start with: ${BANNED_OPENINGS.join(', ')}.
-- Sound like a real customer, not an advertisement. No hashtags, keyword stuffing, no dashes. Avoid polished marketing words (seamless, hassle-free, top-notch, exceptional).
+- Sound like a real customer, not an advertisement. No hashtags, slogans, keyword stuffing, no dashes. Avoid polished marketing words (seamless, hassle-free, top-notch, exceptional, truly).
+- Do not invent facts: only talk about what the main topic says. No exact prices, no discounts, no person names, no insurance or warranty promises.
 - End with a COMPLETE thought. Never stop mid-sentence.
 - Output only the review text.`.replace(/\n{3,}/g, '\n\n').replace(/\n\n(- )/g, '\n$1');
 
@@ -370,12 +382,19 @@ async function callGemini(apiKey, payload, signal) {
   return { res, data };
 }
 
+/* ------------------ ek koshish: likhwao + check karo ------------------ */
 async function attempt(apiKey, body, recent, signal) {
   const built = buildPrompt(body, recent);
   const { prompt, length, persona, topic, extraChips, opener, ending, seo, language } = built;
 
+  // FIX: har reject ka kaaran Vercel logs me dikhega, debug aasan
+  const fail = (error) => {
+    console.warn('[review] rejected:', error);
+    return { ok: false, error };
+  };
+
   const payload = {
-    contents: [{ role: 'user', parts: [{ text: `Write the review for ${body.businessName} now.` }] }],
+    contents: [{ role: 'user', parts: [{ text: `Write the review for ${body.businessName || 'KSP Self Drive Cars'} now.` }] }],
     systemInstruction: { parts: [{ text: prompt }] },
     generationConfig: {
       temperature: 1.0,
@@ -388,11 +407,15 @@ async function attempt(apiKey, body, recent, signal) {
   try {
     let { res, data } = await callGemini(apiKey, payload, signal);
 
-    if (!res.ok && /thinking/i.test(data?.error?.message || '')) {
+    // FIX: thinkingConfig par koi bhi 400 error aaye to uske bina dobara try karo
+    if (!res.ok && (res.status === 400 || /thinking/i.test(data?.error?.message || ''))) {
       delete payload.generationConfig.thinkingConfig;
       ({ res, data } = await callGemini(apiKey, payload, signal));
     }
-    if (!res.ok) return { ok: false, error: data?.error?.message || 'Gemini API request failed.' };
+    if (!res.ok) {
+      console.error('[review] Gemini error:', res.status, data?.error?.message);
+      return { ok: false, error: data?.error?.message || 'Gemini API request failed.' };
+    }
 
     const candidate = data.candidates?.[0];
     const parts = candidate?.content?.parts || [];
@@ -400,19 +423,19 @@ async function attempt(apiKey, body, recent, signal) {
     const review = fixCutOff(cleanReview(raw));
     const words = review.split(/\s+/).filter(Boolean).length;
 
-    if (!review) return { ok: false, error: 'Empty response from Gemini.' };
-    if (candidate?.finishReason === 'MAX_TOKENS') return { ok: false, error: 'Response was cut off.' };
-    if (looksCutOff(review)) return { ok: false, error: 'Review ended mid-sentence.' };
-    if (words > length.max + 8) return { ok: false, error: 'Review too long.' };
-    if (words < Math.floor(length.min * 0.75)) return { ok: false, error: 'Review too short.' };
-    if (/[ऀ-ॿ]/.test(review)) return { ok: false, error: 'Devanagari used.' };
-    if (AI_PHRASES.test(review)) return { ok: false, error: 'Robotic phrase used.' };
-    if (startsBanned(review)) return { ok: false, error: 'Banned opening used.' };
-    if (!languageOk(review, language, words)) return { ok: false, error: 'Wrong language style.' };
-    if (!topic.must.test(review)) return { ok: false, error: 'Review missed the selected topic.' };
-    if (extraChips.some((c) => !c.must.test(review))) return { ok: false, error: 'Review missed a selected keyword.' };
+    if (!review) return fail('Empty response from Gemini.');
+    if (candidate?.finishReason === 'MAX_TOKENS') return fail('Response was cut off.');
+    if (looksCutOff(review)) return fail('Review ended mid-sentence.');
+    if (words > length.max + 8) return fail('Review too long.');
+    if (words < Math.floor(length.min * 0.75)) return fail('Review too short.');
+    if (/[ऀ-ॿ]/.test(review)) return fail('Devanagari used.');
+    if (AI_PHRASES.test(review)) return fail('Robotic phrase used.');
+    if (startsBanned(review)) return fail('Banned opening used.');
+    if (!languageOk(review, language, words)) return fail('Wrong language style.');
+    if (!topic.must.test(review)) return fail('Review missed the selected topic.');
+    if (extraChips.some((c) => !c.must.test(review))) return fail('Review missed a selected keyword.');
     const recentOpenings = recent.map((r) => r.open).filter(Boolean);
-    if (tooSimilar(review, recentOpenings)) return { ok: false, error: 'Too similar to an earlier review.' };
+    if (tooSimilar(review, recentOpenings)) return fail('Too similar to an earlier review.');
 
     return {
       ok: true,
@@ -432,6 +455,7 @@ async function attempt(apiKey, body, recent, signal) {
   }
 }
 
+// Jo pehle sahi result de, wahi lo
 function firstValid(tasks) {
   return new Promise((resolve) => {
     let pending = tasks.length;
@@ -472,7 +496,7 @@ export async function POST(request) {
       );
 
       clearTimeout(timer);
-      controller.abort(); 
+      controller.abort(); // bacha hua dusra call band
 
       if (winner.ok) {
         remember(winner.review);
