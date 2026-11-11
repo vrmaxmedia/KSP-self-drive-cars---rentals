@@ -4,11 +4,12 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
 
-const MODEL = 'gemini-1.5-flash'; // Fixed to standard model to avoid rate limits
+// FIXED: Exact API name for the model with 10,000 daily limits
+const MODEL = 'gemini-1.5-flash'; 
 const PARALLEL_CALLS = 2;
 const MAX_ROUNDS = 2;
 const CALL_TIMEOUT_MS = 12000;
-const MAX_OUTPUT_TOKENS = 400; 
+const MAX_OUTPUT_TOKENS = 300; 
 const HISTORY_SIZE = 60;
 
 /* =====================================================================
@@ -61,11 +62,10 @@ function chooseLength(recent, minLines = 1) {
    ===================================================================== */
 const VOICES = [
   { id: 'frequent_traveler', text: 'a frequent traveler who rents cars often, compares KSP favorably to others' },
-  { id: 'family_person', text: 'a family person who rented a big SUV (like Fortuner or Ertiga) for a family road trip' },
-  { id: 'young_professional', text: 'a young IT professional from Pune (Kharadi/Wagholi) who rented a hatchback for a weekend getaway' },
-  { id: 'budget_renter', text: 'a highly practical customer who was very happy about the transparent pricing and instant deposit refund' },
-  { id: 'first_time', text: 'a first-time self-drive renter who was nervous initially but had a super smooth, hassle-free experience' },
-  { id: 'local_marathi', text: 'a local Pune resident, speaks naturally, highly appreciative of the clean cars and polite staff' },
+  { id: 'family_person', text: 'a family person who rented a big SUV for a family road trip' },
+  { id: 'young_professional', text: 'a young IT professional from Pune who rented a car for a weekend getaway' },
+  { id: 'budget_renter', text: 'a highly practical customer who was happy about transparent pricing and quick refund' },
+  { id: 'first_time', text: 'a first-time self-drive renter who had a smooth, hassle-free experience' },
 ];
 
 function chooseVoice(recent) {
@@ -75,10 +75,10 @@ function chooseVoice(recent) {
 
 const STYLES = [
   { id: 'plain', text: 'plain and direct: just say what you liked about the car and service, no extra words' },
-  { id: 'story', text: 'a tiny story: where did you travel (e.g. Mahabaleshwar, Mumbai), which car you took, and how it performed' },
-  { id: 'detail', text: 'focus heavily on ONE specific detail (like the cleanliness of the car or the instant deposit refund)' },
-  { id: 'tell-friends', text: 'the kind of thing you would tell another traveler, ends with a natural recommendation to book from KSP' },
-  { id: 'contrast', text: 'compare KSP casually with other big rental companies, saying why KSP is better (no hidden charges, better support)' },
+  { id: 'story', text: 'a tiny story: where did you travel, which car you took, and how it performed' },
+  { id: 'detail', text: 'focus heavily on ONE specific detail (like car cleanliness or instant deposit refund)' },
+  { id: 'tell-friends', text: 'the kind of thing you would tell another traveler, ends with a natural recommendation' },
+  { id: 'contrast', text: 'compare KSP casually with other rental companies, saying why KSP is better' },
 ];
 
 function chooseStyle(recent) {
@@ -88,10 +88,9 @@ function chooseStyle(recent) {
 
 const OPENERS = [
   { id: 'trip', text: 'start directly by mentioning the recent trip you took with their car' },
-  { id: 'car', text: 'start directly by mentioning which car you rented (e.g., Swift, Fortuner, Innova)' },
+  { id: 'car', text: 'start directly by mentioning which car you rented' },
   { id: 'result', text: 'start directly with the final conclusion (great service, best in Pune)' },
-  { id: 'mid', text: 'start in the middle of a thought, very casually about the booking process' },
-  { id: 'time', text: 'start with how many days you rented the car for' },
+  { id: 'mid', text: 'start in the middle of a thought casually about the booking process' },
 ];
 
 function chooseOpener(recent) {
@@ -105,7 +104,7 @@ function chooseOpener(recent) {
 const VISITS = [
   'rented a car for a weekend trip',
   'took an SUV for a family function',
-  'used their doorstep delivery service in Wagholi',
+  'used their doorstep delivery service',
   'booked a self-drive car for outstation travel',
 ];
 
@@ -120,26 +119,26 @@ const SEO_KEYWORDS = [
 const TOPICS = {
   condition: {
     id: 'condition',
-    text: 'excellent condition and cleanliness of the rented car (स्वच्छ आणि मेंटेन कार्स)',
+    text: 'excellent condition and cleanliness of the rented car',
     angles: ['car felt brand new', 'smooth driving without any breakdown', 'AC and mileage were perfect'],
-    must: /clean|condition|maintain|smooth|svachh/i,
+    must: /clean|condition|maintain|smooth/i,
   },
   service: {
     id: 'service',
-    text: 'smooth service, polite staff and easy booking (सोपी बुकिंग प्रोसेस)',
-    angles: ['how cooperative the KSP team is', 'quick paperless verification', 'doorstep delivery experience was great'],
+    text: 'smooth service, polite staff and easy booking process',
+    angles: ['how cooperative the KSP team is', 'quick paperless verification', 'doorstep delivery experience'],
     must: /service|staff|book|support|process/i,
   },
   trip: {
     id: 'trip',
-    text: 'a great road trip experience with their car (बाहेरगावी ट्रिपसाठी उत्तम)',
-    angles: ['rented for a family trip outside Pune', 'took the car for a long weekend drive', 'very comfortable journey'],
+    text: 'a great road trip experience with their car',
+    angles: ['rented for a family trip outside Pune', 'took the car for a long weekend drive'],
     must: /trip|journey|drive|family|outstation/i,
   },
   price: {
     id: 'price',
-    text: 'fair pricing, transparent policies and instant deposit refund (इन्स्टंट रिफंड)',
-    angles: ['no hidden charges unlike other companies', 'immediate refund of security deposit after returning the car'],
+    text: 'fair pricing, transparent policies and instant deposit refund',
+    angles: ['no hidden charges unlike other companies', 'immediate refund of security deposit'],
     must: /price|refund|deposit|charge|transparent/i,
   }
 };
@@ -168,21 +167,19 @@ function chooseTopic(selectedChips, recent) {
 }
 
 /* =====================================================================
-   STRICT MULTILINGUAL FILTERING (ENGLISH, HINDI, MARATHI)
+   STRICT FILTERING (ENGLISH & HINDI ONLY)
    ===================================================================== */
 const BANNED_OPENINGS = [
   'Great', 'Best', 'Amazing', 'Excellent', 'Highly recommend', 'Bhai', 'Superb', 'Awesome', 'Outstanding', 'Must visit', 'I recently',
-  'बहुत अच्छा', 'सबसे अच्छा', 'लाजवाब', 'मुझे सच में', 'मैं हाल ही में',
-  'उत्तम', 'सर्वोत्तम', 'खूप छान', 'अप्रतिम', 'नक्की भेट द्या', 'खरंच', 'एकदम', 'माझा अनुभव', 'मी अलीकडेच', 'मला खरोखर'
+  'बहुत अच्छा', 'सबसे अच्छा', 'लाजवाब', 'मुझे सच में', 'मैं हाल ही में'
 ];
 
-const CLICHES = /seamless|hassle[- ]free|top[- ]notch|look no further|go-to|game[- ]changer|one[- ]stop|unparalleled|exceptional|impeccable|commendable|must[- ]visit|highly recommended|अविस्मरणीय|शब्दांत सांगता|अतुलनीय|निःसंशयपणे/i;
+const CLICHES = /seamless|hassle[- ]free|top[- ]notch|look no further|go-to|game[- ]changer|one[- ]stop|unparalleled|exceptional|impeccable|commendable|must[- ]visit|highly recommended/i;
 
 const DANGLING = new Set([
   'to', 'aur', 'ki', 'ke', 'ka', 'se', 'me', 'mein', 'par', 'pe', 'ko', 'toh',
   'and', 'but', 'the', 'a', 'an', 'of', 'in', 'on', 'for', 'with', 'at', 'that',
   'so', 'if', 'or', 'because', 'jo', 'jab', 'agar', 'lekin', 'ya', 'jaise', 'kyunki',
-  'आणि', 'व', 'की', 'च्या', 'चा', 'ची', 'चे', 'त', 'तर', 'पण', 'परंतु', 'म्हणून', 'जर', 'तरी', 'कारण', 'साठी', 
   'और', 'में', 'से', 'को', 'का', 'है', 'तो', 'पर', 'लिए' 
 ]);
 
@@ -257,17 +254,17 @@ function startsBanned(text) {
 }
 
 function languageOk(text, language) {
-  if (language === 'MARATHI' || language === 'HINDI') {
+  if (language === 'HINDI') {
     return /[\u0900-\u097F]/.test(text); 
   }
   return true; 
 }
 
 /* =====================================================================
-   PROMPT BUILDER (STRICT MULTILINGUAL INSTRUCTIONS)
+   PROMPT BUILDER
    ===================================================================== */
 function buildPrompt(body, recent) {
-  const language = body.language || 'MARATHI';
+  const language = body.language || 'ENGLISH';
   const businessName = String(body.businessName || 'KSP Self Drive Cars').slice(0, 120);
   const category = String(body.category || 'Car Rental Agency').slice(0, 200);
   
@@ -291,13 +288,10 @@ function buildPrompt(body, recent) {
   const seo = chance(0.35) ? pick(seoPool.length ? seoPool : SEO_KEYWORDS) : null;
 
   let languageBlock = '';
-  if (language === 'MARATHI') {
-    languageBlock = `LANGUAGE (CRITICAL RULE): You MUST write 100% in PURE, natural, and fluent Marathi (मराठी) using Devanagari script. Speak exactly like a real resident of Pune, Maharashtra. 
-WARNING: Do NOT mix even a single Hindi word. Use native Marathi words like "आणि", "खूप", "चांगले", "आहे". Apply the voice, style, and opener natively in Marathi.`;
-  } else if (language === 'HINDI') {
-    languageBlock = `LANGUAGE (CRITICAL RULE): You MUST write 100% in pure natural Hindi language (हिंदी) using Devanagari script. Speak like a real Indian customer. Do not mix English or Marathi words.`;
+  if (language === 'HINDI') {
+    languageBlock = `LANGUAGE (CRITICAL RULE): You MUST write 100% in pure natural Hindi language (हिंदी) using Devanagari script. Speak like a real Indian customer. Do not mix English words.`;
   } else {
-    languageBlock = `LANGUAGE (CRITICAL RULE): Write in simple, natural English like an Indian customer. Do not use Hindi or Marathi words.`;
+    languageBlock = `LANGUAGE (CRITICAL RULE): Write in simple, natural English like an Indian customer. Do not use Hindi words.`;
   }
 
   const prompt = `${languageBlock}
@@ -320,7 +314,7 @@ ${lowerStart ? '- Start the first word in lowercase, like a quick casual phone m
 
 HARD RULES:
 - ONE single paragraph. No line breaks, bullets or title.
-- Do NOT use a full stop (.) anywhere. Use commas, or native connecting words like "आणि" (Marathi) / "और" (Hindi).
+- Do NOT use a full stop (.) anywhere. Use commas, or native connecting words.
 - Never start with any robotic or generic words. Get straight to the point.
 - Sound like a real unpolished customer, not an advertisement. 
 - End with a COMPLETE thought. Never stop mid-sentence.
@@ -375,7 +369,6 @@ async function attempt(apiKey, body, recent, signal) {
     const parts = candidate?.content?.parts || [];
     const raw = parts.filter((p) => !p.thought).map((p) => p.text || '').join('');
     const review = fixCutOff(cleanReview(raw));
-    const words = review.split(/\s+/).filter(Boolean).length;
 
     if (!review) return { ok: false, error: 'Empty response from Gemini.' };
     if (candidate?.finishReason === 'MAX_TOKENS') return { ok: false, error: 'Response was cut off.' };
