@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
 
 // LOCKED TO FLASH-LITE MODEL FOR MAXIMUM 150K LIMIT
-const MODEL = 'gemini-3.5-flash-lite'; 
+const MODEL = 'gemini-3.6-flash-lite'; 
 const PARALLEL_CALLS = 2;
 const MAX_ROUNDS = 2;
 const CALL_TIMEOUT_MS = 12000;
